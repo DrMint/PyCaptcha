@@ -87,68 +87,90 @@ def generateRandomPoints(img):
 
 
 
-
-
-
-
-
-
 # CONFIG
 
 availableThemes = ['DARK', 'LIGHT', 'NONE']
+
+# LIGHT theme will use color values superior to 128 for the R, G, and B channels
+# DARK theme will use color values bellow 128.
+# NONE will use the entire spectrum.
 theme = availableThemes[1]
 
-width = 900
-height = 400
+width = 900                             # Width of the resulting output
+height = 400                            # Height of the resulting output
 
 textLenght = 6                          # Lenght of the captcha
 textPosition = [75, 150]                # Starting position (x, y)
 textLetters = string.ascii_uppercase    # Set of letters. Can be any string
 
-mainColor = (0, 0, 0)
-textRandomColor = False
-backgroundColor = (255, 255, 255)
+mainColor = (0, 0, 0)                   # This is the color of the lines, points, and text
+textRandomColor = False                 # If True, use random colors for each character
+
+backgroundTransparent = False           # If True, the file will be exported in .png wihthout compression.
+backgroundColor = (255, 255, 255)       # The color used in the background.
 
 fontFolder = "font/"                    # Where are the font located
-fontSizeMin = 130
-fontSizeMax = 160
-fontSpacing = 0.9                         # Seperation factor. 1 = no overlaying and no seperation.
-fontVerticalDivergence = 50
+fontSizeMin = 130                       # Minimum size for the characters
+fontSizeMax = 160                       # Maximum size for the characters
+fontSpacing = 0.9                       # Seperation factor. 1 = no overlaying and no seperation.
+fontVerticalDivergence = 50             # How much the characters's vertical position can vary.
 
-linesEnabled = True
-linesRandomColor = False
-linesCountMin = 3
-linesCountMax = 10
-linesWidthMin = 1
-linesWidthMax = 2
+linesEnabled = True                     # Creates random lines on the captcha
+linesRandomColor = False                # If True, use random colors for each line
+linesCountMin = 3                       # Minimum amount of lines
+linesCountMax = 10                      # Maximum amount of lines
+linesWidthMin = 1                       # Minimum thickness for the lines
+linesWidthMax = 2                       # Maximum thickness for the lines
 
-pointsEnabled = True
-pointsRandomColor = False
-pointsCountMin = 200
-pointsCountMax = 1000
-pointsSizeMin = 1
-pointsSizeMax = 3
+pointsEnabled = True                    # Creates random points on the captcha
+pointsRandomColor = False               # If True, use random colors for each point
+pointsCountMin = 200                    # Minimum amount of points
+pointsCountMax = 1000                   # Maximum amount of points
+pointsSizeMin = 1                       # Minimum size of a point
+pointsSizeMax = 3                       # Maximum size of a point
 
-exportFolder = 'output/'
-exportBatch = True
-exportBatchCount = 100
-exportName = 'captcha'
-jpgQuality = 0
+exportFolder = 'output/'                # The folder path for the export folder.
+exportCount = 100                       # The number of captcha to generate.
+exportName = 'captcha'                  # A number will be appended if exportCount > 1
+jpgQuality = 0                          # The quality of the exportation. Only compatible with JPG
 
+# Displays debug messages in the console.
+# Will display which font have been imported,
+# which font has been used for each character.
+# That can be useful when testing new fonts.
 debug = False
+
 
 # END CONFIG
 
 
+
+
+
+
+
+
+
+# Create the folders if they don't exist.
+if not os.path.exists(fontFolder):
+    if debug: print('\nThe font folder is missing. Trying to create a folder at this path: ' + fontFolder)
+    os.mkdir(fontFolder)
+    if debug: print('The font folder has been created successfully.')
+if not os.path.exists(exportFolder):
+    if debug: print('\nThe export Folder is missing. Trying to create a folder at this path: ' + exportFolder)
+    os.mkdir(exportFolder)
+    if debug: print('The export Folder has been created successfully.')
+
+
 # Get the list of font in the font folder
-# Only otf and ttf files are accepted
 fnt = []
 fontFileList = os.listdir(fontFolder)
 
 if debug: print('\n\nIMPORTING THE FONT FROM THIS FOLDER: ' + fontFolder + '\n')
 for filepath in fontFileList:
     filename, file_extension = os.path.splitext(filepath)
-    
+
+    # Only otf and ttf files are accepted, regardless of upper or lowercase
     if file_extension.lower() == '.otf' or file_extension.lower() == '.ttf':
         fontSize = random.randint(fontSizeMin, fontSizeMax)
         fnt += [ImageFont.truetype(fontFolder + filename + file_extension, fontSize)]
@@ -156,28 +178,39 @@ for filepath in fontFileList:
 
     elif debug:
         print(fontFolder + filename + file_extension + ' is not a valid font file. Skipping it.')
-    
+
+# If no font was imported, aborts.
+if len(fnt) == 0:
+    print('ERROR: No font present. Please add fonts (.ttf or .otf files) to the correct folder : ' + fontFolder)
+    exit(1)
 
 
-numberOfCatcha = 1
-if exportBatch: numberOfCatcha = exportBatchCount
-
-for i in range(numberOfCatcha):
+# Now generate exportCount captcha(s)
+for i in range(exportCount):
     
     if debug: print('')
-    
-    img = Image.new('RGB', (width, height), color = backgroundColor)
 
+    # Create the base image with the proper background
+    if backgroundTransparent:
+        img = Image.new('RGBA', (width, height))
+    else:
+        img = Image.new('RGB', (width, height), color = backgroundColor)
+
+    # Generation
     generateText(img)
     if linesEnabled:  generateRandomLines(img)
     if pointsEnabled: generateRandomPoints(img)
 
-    if exportBatch:
-        img.save(exportFolder + exportName + '_' + str(i) + '.jpg', quality = jpgQuality)
+    # Exportation
+    outputName = exportFolder + exportName
+    if exportCount > 1: outputName +=  '_' + str(i)
+    if backgroundTransparent:
+        outputName += '.png'
     else:
-        img.save(exportFolder + exportName + '.jpg', quality = jpgQuality)
-        
-    if debug: print('')
+        outputName += '.jpg'
+
+    img.save(outputName, quality = jpgQuality)    
+    if debug: print('The captcha above has been saved as ' + outputName + '\n')
 
     
 
